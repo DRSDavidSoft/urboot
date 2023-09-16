@@ -568,6 +568,7 @@
 
 #else // !TEMPLATE
 
+#define led_toggle()    (UR_PORT(LED) ^=  UR_BV(LED))
 #if defined(LEDPOLARITY) && LEDPOLARITY < 0
 #define led_on()        (UR_PORT(LED) &= ~UR_BV(LED))
 #define led_off()       (UR_PORT(LED) |=  UR_BV(LED))
@@ -590,11 +591,11 @@
 
 #define led_on()
 #define led_off()
+#define led_toggle()
 #define led_setup()
 #define led_resetddr()
 #define led_resetport()
 #endif
-
 
 // I/O settings
 
@@ -1841,8 +1842,6 @@ static void leave_progmode() {
 #endif
 
 
-
-
 /*
  * Urboot layout of top six bytes
  *
@@ -1965,13 +1964,22 @@ int main(void) {
   }
 #endif
 
+led_setup();
+
+#if BLINK
+uint8_t r = (2 * BLINK) - 1;
+
+do {
+	led_toggle();
+	_delay_ms(60);
+} while (r--);
+#endif
 
 // Start of bootloader
 
   // Mark location of WDTO setting, so urloader can change the 500 ms default externally
   asm volatile(".global watchdog_setting\nwatchdog_setting:\n\t" :::);
   watchdogConfig(WATCHDOG_TIMEOUT(WDTO));
-
 
 #if SWIO && !defined(TX)
 #error you need to define TX for SWIO
@@ -2392,9 +2400,6 @@ uint8_t getch2(void) {
 
   uint8_t chr;
 
-  led_on();
-  led_setup();
-
 #if SWIO
   asm volatile(
     "   ldi   r18, 9\n"         // 8 bit + 1 stop bit
@@ -2468,8 +2473,6 @@ uint8_t getch2(void) {
 
 #endif // UR_UARTTYPEs
 #endif // !SWIO
-
-  led_off();
 
   return chr;
 }
